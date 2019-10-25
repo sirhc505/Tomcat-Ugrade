@@ -19,7 +19,7 @@
 
 TOMCAT_VERSION_FILE="/opt/current_tomcat"
 TOMCAT_CURRENT=`cat $TOMCAT_VERSION_FILE`
-TOMCAT_LATEST=`curl -s http://apache.mirrors.hoobly.com/tomcat/tomcat-9/ |grep v9 | cut -f 3 -d \> | cut -f 1 -d \/`
+TOMCAT_LATEST=`curl -s http://mirrors.ibiblio.org/apache/tomcat/tomcat-9/ |grep v9 | cut -f 3 -d \> | cut -f 1 -d \/`
 TOMCAT_VERSION=`echo $TOMCAT_LATEST | cut -f 2 -d v`
 TOMCAT_WORKING_DIR="/opt/tomcat9"
 TMP_TOMCAT="/tmp/apache-tomcat-$TOMCAT_VERSION.tar.gz"
