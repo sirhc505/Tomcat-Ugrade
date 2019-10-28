@@ -37,7 +37,7 @@ TOMCAT_SHA="https://www.apache.org/dist/tomcat/tomcat-9/$TOMCAT_LATEST/bin/apach
 # We need to send notifications if we have a failure of some kind.
 # If for some reason ssmtp is not installed we are going to do that
 # now and setup the error messages.
-if [ ! -f "/etc/ssmtp/ssmtp.conf"]; then
+if [ ! -f "/etc/ssmtp/ssmtp.conf" ]; then
 	yum -y install ssmtp
 	sed -i s/root=postmaster/root=$SERVER_ADMIN/g /etc/ssmtp/ssmtp.conf
 	sed -i s/mailhub=mail/mailhub=$MAIL_SERVER/g /etc/ssmtp/ssmtp.conf
@@ -48,7 +48,7 @@ if [ ! -f "/etc/ssmtp/ssmtp.conf"]; then
 fi
 
 
-if [ "$TOMCAT_CURRENT" -ne "$TOMCAT_LATEST" ]; then
+if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
 	echo "Our Tomcat: $TOMCAT_CURRENT, Latest Release: $TOMCAT_LATEST"
 	echo "Downloading Tomcat: $TOMCAT_LATEST..."
 	curl $TOMCAT_BIN -o $TMP_TOMCAT
@@ -56,10 +56,10 @@ if [ "$TOMCAT_CURRENT" -ne "$TOMCAT_LATEST" ]; then
 	SHA_SUM = `sha512sum $TMP_TOMCAT`
 	ACTUAL_SUM = `cat $TMP_SHASUM`
 
-	if [ "$SHA_SUM" -ne "$ACTUAL_SUM"];
+	if [ "$SHA_SUM" == "$ACTUAL_SUM" ]; then
 		echo "SHA sums do not match. Exiting..."
 		/usr/sbin/sendmail $SERVER_ADMIN < $SENDMAIL_CHECKSUM_FAILED
-		exit
+		exit 1
 	fi
 
 	echo "Done!"
@@ -75,13 +75,15 @@ if [ "$TOMCAT_CURRENT" -ne "$TOMCAT_LATEST" ]; then
 
 	INSTALLED_VERSION=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
 
-	if [ "$INSTALLED_VERSION" -ne "$TOMCAT_VERSION"]; then
+	if [ "$INSTALLED_VERSION" == "$TOMCAT_VERSION" ]; then
 		echo "Upgrade version mismatch. Something went wrong."
 		/usr/sbin/sendmail $SERVER_ADMIN < $SENDMAIL_UPGRADE_FAILED
-		exit
+		exit 1
 	fi
 
 	echo "Restarting CAS..."
 	systemctl start tomcat9
 	echo "Done!"
+else
+	echo "No Upgrade needed [$TOMCAT_CURRENT:$TOMCAT_VERSION] [CURRENT:LATEST]"
 fi
