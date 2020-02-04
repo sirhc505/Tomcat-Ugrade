@@ -19,7 +19,7 @@
 
 HOSTNAME=`hostname -f`
 MAIL_SERVER="smtp.uconn.edu"
-SERVER_ADMIN="chris@uconn.edu"
+SERVER_ADMINS="chris@uconn.edu kevin.r.brown@uconn.edu dylan.marquis@uconn.edu"
 # START_TLS="-S smtp-use-starttls"
 SENDER="$HOSTNAME@uconn.edu"
 
@@ -59,7 +59,7 @@ if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
 
 	if [ "$SHA_SUM" == "$ACTUAL_SUM" ]; then
 		echo "SHA sums do not match. Exiting..."
-		echo "$MAILX_CHECKSUM_FAILED" | /usr/bin/mailx -v -r "$SENDER" -s "$MAILX_CHECKSUM_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMIN"
+		echo "$MAILX_CHECKSUM_FAILED" | /usr/bin/mailx -v -r "$SENDER" -s "$MAILX_CHECKSUM_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
 		exit 1
 	fi
 
@@ -78,7 +78,7 @@ if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
 
 	if [ "$INSTALLED_VERSION" == "$TOMCAT_VERSION" ]; then
 		echo "Upgrade version mismatch. Something went wrong."
-		echo "$MAILX_UPGRADE_FAILED" | /usr/bin/mailx -v -r "$SENDER" -s "$MAILX_UPGRADE_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMIN"
+		echo "$MAILX_UPGRADE_FAILED" | /usr/bin/mailx -v -r "$SENDER" -s "$MAILX_UPGRADE_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
 		exit 1
 	fi
 
