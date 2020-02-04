@@ -20,8 +20,8 @@
 HOSTNAME=`hostname -f`
 MAIL_SERVER="smtp.uconn.edu"
 SERVER_ADMIN="chris@uconn.edu"
-SENDMAIL_UPGRADE_FAILED="/etc/ssmtp/upgrade_failed.txt"
-SENDMAIL_CHECKSUM_FAILED="/etc/ssmtp/checksum_failure.txt"
+# START_TLS="-S smtp-use-starttls"
+SENDER="$HOSTNAME@uconn.edu"
 
 TOMCAT_CURRENT=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
 TOMCAT_LATEST=`curl -s https://www.apache.org/dist/tomcat/tomcat-9/ |grep v9 | cut -f 3 -d \> | cut -f 1 -d \/`
@@ -37,14 +37,15 @@ TOMCAT_SHA="https://www.apache.org/dist/tomcat/tomcat-9/$TOMCAT_LATEST/bin/apach
 # We need to send notifications if we have a failure of some kind.
 # If for some reason ssmtp is not installed we are going to do that
 # now and setup the error messages.
-if [ ! -f "/etc/ssmtp/ssmtp.conf" ]; then
-	yum -y install ssmtp
-	sed -i s/root=postmaster/root=$SERVER_ADMIN/g /etc/ssmtp/ssmtp.conf
-	sed -i s/mailhub=mail/mailhub=$MAIL_SERVER/g /etc/ssmtp/ssmtp.conf
-	sed -i s/\#Hostname=/Hostname=$HOSTNAME/g /etc/ssmtp/ssmtp.conf
+MAILX_CHECKSUM_FAILED_SUBJECT="Tomcat Upgrade: Checksum failure"
+MAILX_CHECKSUM_FAILED="Subject: Tomcat SHA Checksum failure\nThe system was unable to upgrade Tomcat properly. There was a mismatch of SHA512 sums from the downloaded file and expected SHA sum. Please login to $HOSTNAME check the system.\n"
 
-	echo -e "Subject: Tomcat Upgrade Failed\nThe system was unable to upgrade Tomcat properly. Please login to $HOSTNAME check the system.\n" > $SENDMAIL_UPGRADE_FAILED
-	echo -e "Subject: Tomcat SHA Checksum failure\nThe system was unable to upgrade Tomcat properly. There was a mismatch of SHA512 sums from the downloaded file and expected SHA sum. Please login to $HOSTNAME check the system.\n" > $SENDMAIL_CHECKSUM_FAILED
+MAILX_UPGRADE_FAILED_SUBJECT="Tomcat Upgrade: Upgrade failure"
+MAILX_UPGRADE_FAILED="Subject: Tomcat Upgrade Failed\nThe system was unable to upgrade Tomcat properly. Please login to $HOSTNAME check the system.\n"
+MAILX="/usr/bin/mailx"
+
+if [ ! -f "/usr/bin/mailx" ]; then
+	yum -y mailx
 fi
 
 
@@ -58,7 +59,7 @@ if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
 
 	if [ "$SHA_SUM" == "$ACTUAL_SUM" ]; then
 		echo "SHA sums do not match. Exiting..."
-		/usr/sbin/sendmail $SERVER_ADMIN < $SENDMAIL_CHECKSUM_FAILED
+		echo "$MAILX_CHECKSUM_FAILED" | /usr/bin/mailx -v -r "$SENDER" -s "$MAILX_CHECKSUM_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMIN"
 		exit 1
 	fi
 
@@ -77,7 +78,7 @@ if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
 
 	if [ "$INSTALLED_VERSION" == "$TOMCAT_VERSION" ]; then
 		echo "Upgrade version mismatch. Something went wrong."
-		/usr/sbin/sendmail $SERVER_ADMIN < $SENDMAIL_UPGRADE_FAILED
+		echo "$MAILX_UPGRADE_FAILED" | /usr/bin/mailx -v -r "$SENDER" -s "$MAILX_UPGRADE_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMIN"
 		exit 1
 	fi
 
