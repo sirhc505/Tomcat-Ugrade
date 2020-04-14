@@ -29,7 +29,7 @@ BASE_URL="https://downloads.apache.org/tomcat/tomcat-9"
 TOMCAT_CURRENT=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
 
 # We need to connect to Apache's website and find what the current version of Tomcat is
-TOMCAT_LATEST=`curl -s $BASE_URL/ |grep v9  | sed 's:<a href="\(v9.*\)">.*</a>:\1:' | cut -f2 -d v | cut -f 1 -d \/`
+TOMCAT_LATEST=`curl -s https://downloads.apache.org/tomcat/tomcat-9/|grep v9 | cut -f 2 -d \> | cut -f 1 -d \/ |cut -f 2 -d \" | tail -n 1`
 TOMCAT_VERSION=`echo $TOMCAT_LATEST | cut -f 2 -d v`
 TOMCAT_WORKING_DIR="/opt/tomcat9"
 TMP_TOMCAT="/tmp/apache-tomcat-$TOMCAT_VERSION.tar.gz"
@@ -81,7 +81,7 @@ if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
 
 	INSTALLED_VERSION=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
 
-	if [[ "$INSTALLED_VERSION" != "$TOMCAT_VERSION" ]]; then
+	if [[ "$INSTALLED_VERSION" != "$TOMCAT_LATEST" ]]; then
 		echo "Upgrade version mismatch. Something went wrong."
 		echo "$MAILX_UPGRADE_FAILED" | $MAILX -v -r "$SENDER" -s "$MAILX_UPGRADE_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
 		exit 1
