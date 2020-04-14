@@ -19,24 +19,20 @@
 
 HOSTNAME=`hostname -f`
 MAIL_SERVER="smtp.uconn.edu"
-SERVER_ADMINS="chris@uconn.edu kevin.r.brown@uconn.edu dylan.marquis@uconn.edu"
+SERVER_ADMINS="chris@uconn.edu" # kevin.r.brown@uconn.edu dylan.marquis@uconn.edu"
 # START_TLS="-S smtp-use-starttls"
 SENDER="$HOSTNAME@uconn.edu"
 
-BASE_URL="https://downloads.apache.org/tomcat/tomcat-9"
-
-# Get the current running Tomcat version
 TOMCAT_CURRENT=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
-
-# We need to connect to Apache's website and find what the current version of Tomcat is
 TOMCAT_LATEST=`curl -s https://downloads.apache.org/tomcat/tomcat-9/|grep v9 | cut -f 2 -d \> | cut -f 1 -d \/ |cut -f 2 -d \" | tail -n 1`
+
 TOMCAT_VERSION=`echo $TOMCAT_LATEST | cut -f 2 -d v`
 TOMCAT_WORKING_DIR="/opt/tomcat9"
 TMP_TOMCAT="/tmp/apache-tomcat-$TOMCAT_VERSION.tar.gz"
 TMP_SHASUM="/tmp/apache-tomcat-$TOMCAT_VERSION.tar.gz.sha512"
 
-TOMCAT_BIN="$BASE_URL/$TOMCAT_LATEST/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz"
-TOMCAT_SHA="$BASE_URL/$TOMCAT_LATEST/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz.sha512"
+TOMCAT_BIN="https://downloads.apache.org/tomcat/tomcat-9/$TOMCAT_LATEST/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz"
+TOMCAT_SHA="https://downloads.apache.org/tomcat/tomcat-9/$TOMCAT_LATEST/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz.sha512"
 
 # We need to send notifications if we have a failure of some kind.
 # If for some reason ssmtp is not installed we are going to do that
@@ -49,47 +45,46 @@ MAILX_UPGRADE_FAILED="Subject: Tomcat Upgrade Failed\nThe system was unable to u
 MAILX="/usr/bin/mailx"
 
 if [ ! -f "/usr/bin/mailx" ]; then
-	yum -y mailx
+        yum -y mailx
 fi
 
-# If the versions are different, then we need to upgrade
+
 if [ "$TOMCAT_CURRENT" != "$TOMCAT_VERSION" ]; then
-	echo "Our Tomcat: $TOMCAT_CURRENT, Latest Release: $TOMCAT_LATEST"
-	echo "Downloading Tomcat: $TOMCAT_LATEST..."
-	curl $TOMCAT_BIN -o $TMP_TOMCAT
-	curl $TOMCAT_SHA -o $TMP_SHASUM
-	SHA_SUM = `sha512sum $TMP_TOMCAT`
-	ACTUAL_SUM = `cat $TMP_SHASUM`
+        echo "Our Tomcat: $TOMCAT_CURRENT, Latest Release: $TOMCAT_LATEST"
+        echo "Downloading Tomcat: $TOMCAT_LATEST..."
+        curl $TOMCAT_BIN -o $TMP_TOMCAT
+        curl $TOMCAT_SHA -o $TMP_SHASUM
+        SHA_SUM=`sha512sum $TMP_TOMCAT`
+        ACTUAL_SUM=`cat $TMP_SHASUM`
 
-	if [[ "$SHA_SUM" != "$ACTUAL_SUM" ]]; then
-		echo "SHA sums do not match. Exiting..."
-		echo "$MAILX_CHECKSUM_FAILED" | $MAILX -v -r "$SENDER" -s "$MAILX_CHECKSUM_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
-		exit 1
-	fi
+        if [ "$SHA_SUM" == "$ACTUAL_SUM" ]; then
+                echo "SHA sums do not match. Exiting..."
+                echo "$MAILX_CHECKSUM_FAILED" | $MAILX -v -r "$SENDER" -s "$MAILX_CHECKSUM_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
+                exit 1
+        fi
 
-	echo "Done!"
-	echo "Stopping CAS..."
-	systemctl stop tomcat.service
-	echo "Done!"
+        echo "Done!"
+        echo "Stopping CAS..."
+        systemctl stop tomcat.service
+        echo "Done!"
 
-	echo "Starting Upgrade Process..."
-	echo "This should only take a second or two"
-	tar -zxf $TMP_TOMCAT -C $TOMCAT_WORKING_DIR --strip-components 1
-	chown tomcat.tomcat $TOMCAT_WORKING_DIR
-	chown tomcat.tomcat $TOMCAT_WORKING_DIR/* -R
-	echo "Upgrade Complete!"
+        echo "Starting Upgrade Process..."
+        tar -zxf $TMP_TOMCAT -C $TOMCAT_WORKING_DIR --strip-components 1
+        chown tomcat.tomcat $TOMCAT_WORKING_DIR
+        chown tomcat.tomcat $TOMCAT_WORKING_DIR/* -R
+        echo "Upgrade Complete!"
 
-	INSTALLED_VERSION=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
+        INSTALLED_VERSION=`java -classpath /opt/tomcat9/lib/catalina.jar org.apache.catalina.util.ServerInfo |grep "Server version" |cut -f 2 -d \/`
 
-	if [[ "$INSTALLED_VERSION" != "$TOMCAT_LATEST" ]]; then
-		echo "Upgrade version mismatch. Something went wrong."
-		echo "$MAILX_UPGRADE_FAILED" | $MAILX -v -r "$SENDER" -s "$MAILX_UPGRADE_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
-		exit 1
-	fi
+        if [ "$INSTALLED_VERSION" == "$TOMCAT_LATEST" ]; then
+                echo "Upgrade version mismatch. Something went wrong."
+                echo "$MAILX_UPGRADE_FAILED" | $MAILX -v -r "$SENDER" -s "$MAILX_UPGRADE_FAILED_SUBJECT" $START_TLS -S smtp="$MAIL_SERVER" "$SERVER_ADMINS"
+                exit 1
+        fi
 
-	echo "Restarting CAS..."
-	systemctl start tomcat.service
-	echo "Done!"
+        echo "Restarting CAS..."
+        systemctl start tomcat.service
+        echo "Done!"
 else
-	echo "No Upgrade needed [$TOMCAT_CURRENT:$TOMCAT_VERSION] [CURRENT:LATEST]"
+        echo "No Upgrade needed [$TOMCAT_CURRENT:$TOMCAT_VERSION] [CURRENT:LATEST]"
 fi
