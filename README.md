@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Red Hat decided to stop support for Tomcat in RHEL 8 and later. However there are a significant number of installations of Tomcat already. The purpose of this script is to pull down the latest version 9 edition of Tomcat and upgrade it. 
+Red Hat decided to stop support for Tomcat in RHEL 8 and later. However there are a significant number of installations of Tomcat already. The purpose of this script is to pull down the latest version 9 edition of Tomcat and upgrade it.
+
+Additionally this will setup and install Tomcat in a fashion similar to how it is setup on RHEL 7 from the RPM.
 
 ## Created by
 
